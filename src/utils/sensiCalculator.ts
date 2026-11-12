@@ -48,12 +48,12 @@ function getDeterministicOffset(str: string, maxOffset: number = 3): number {
   return Math.abs(hash) % (maxOffset * 2 + 1) - maxOffset;
 }
 
-function clamp(val: number, min: number = 0, max: number = 100): number {
+function clamp(val: number, min: number = 0, max: number = 200): number {
   return Math.max(min, Math.min(max, Math.round(val)));
 }
 
 /**
- * Calcula a sensibilidade calibrada e determinística para o Free Fire
+ * Calcula a sensibilidade calibrada e determinística para o Free Fire na escala 0-200
  */
 export function calculateSensi(
   device: DeviceInfo,
@@ -64,92 +64,90 @@ export function calculateSensi(
   const isIos = device.os === 'ios';
   const isGaming = device.screenHz >= 144 || device.touchSamplingRate >= 480;
 
-  // 1. Sensibilidade Base de acordo com a resposta de toque e taxa de atualização do aparelho
-  // Em aparelhos de tela muito rápida (120Hz/144Hz+) com toque de 360-720Hz, a sensibilidade
-  // precisa ser levemente dosada para não passar da cabeça e espalhar disparos no céu.
-  let baseGeral = 95;
-  let baseRedDot = 92;
-  let base2x = 88;
-  let base4x = 84;
-  let baseAwm = 42;
-  let baseOlharLivre = 75;
+  // 1. Sensibilidade Base na escala 0-200 de acordo com a resposta de toque do aparelho
+  let baseGeral = 188;
+  let baseRedDot = 182;
+  let base2x = 174;
+  let base4x = 164;
+  let baseAwm = 84;
+  let baseOlharLivre = 150;
 
   if (device.tier === 'flagship') {
-    baseGeral = isGaming ? 93 : 95;
-    baseRedDot = 91;
-    base2x = 87;
-    base4x = 82;
-    baseAwm = 40;
-    baseOlharLivre = 70;
+    baseGeral = isGaming ? 182 : 186;
+    baseRedDot = 180;
+    base2x = 172;
+    base4x = 162;
+    baseAwm = 80;
+    baseOlharLivre = 142;
   } else if (device.tier === 'intermediate') {
-    baseGeral = 97;
-    baseRedDot = 94;
-    base2x = 90;
-    base4x = 86;
-    baseAwm = 44;
-    baseOlharLivre = 76;
+    baseGeral = 190;
+    baseRedDot = 185;
+    base2x = 176;
+    base4x = 168;
+    baseAwm = 86;
+    baseOlharLivre = 152;
   } else {
     // Básico: Telas de 60Hz e toque de 120Hz precisam de maior sensibilidade no motor do jogo
-    baseGeral = 99;
-    baseRedDot = 97;
-    base2x = 94;
-    base4x = 90;
-    baseAwm = 48;
-    baseOlharLivre = 82;
+    baseGeral = 196;
+    baseRedDot = 192;
+    base2x = 184;
+    base4x = 176;
+    baseAwm = 92;
+    baseOlharLivre = 162;
   }
 
   // 2. Compensação do Sistema Operacional (iOS vs Android)
   if (isIos) {
     // iPhones possuem leitura capacitiva nativa ultra responsiva sem buffer de latência do Android
-    baseGeral -= 3;
-    baseRedDot -= 2;
-    base2x -= 2;
+    baseGeral -= 6;
+    baseRedDot -= 4;
+    base2x -= 4;
   }
 
-  // 3. Aplicação do estilo e pesos do jogador escolhido
+  // 3. Aplicação do estilo e pesos do jogador escolhido (escala ampliada para 200)
   const pWeights = player.weights;
-  baseGeral += pWeights.geralBias;
-  baseRedDot += pWeights.redDotBias;
-  base2x += pWeights.scope2xBias;
-  base4x += pWeights.scope4xBias;
-  baseAwm += pWeights.awmBias;
-  baseOlharLivre += pWeights.freeLookBias;
+  baseGeral += Math.round(pWeights.geralBias * 1.5);
+  baseRedDot += Math.round(pWeights.redDotBias * 1.5);
+  base2x += Math.round(pWeights.scope2xBias * 1.5);
+  base4x += Math.round(pWeights.scope4xBias * 1.5);
+  baseAwm += Math.round(pWeights.awmBias * 1.5);
+  baseOlharLivre += Math.round(pWeights.freeLookBias * 1.5);
 
   // 4. Modo ALTA vs BAIXA
   if (isHigh) {
     // Sensi Alta: mais agilidade no giro 360 e subida em curto percurso
-    baseGeral += 4;
-    baseRedDot += 3;
-    base2x += 3;
-    base4x += 2;
-    baseAwm += 2;
-    baseOlharLivre += 5;
+    baseGeral += 7;
+    baseRedDot += 6;
+    base2x += 5;
+    base4x += 4;
+    baseAwm += 4;
+    baseOlharLivre += 8;
   } else {
-    // Sensi Baixa: mais peso na mira para cravar tiros e não tremer
-    baseGeral -= 6;
-    baseRedDot -= 5;
-    base2x -= 6;
-    base4x -= 6;
-    baseAwm -= 4;
-    baseOlharLivre -= 8;
+    // Sensi Baixa: mais estabilidade para cravar tiros e controle de recoil
+    baseGeral -= 18;
+    baseRedDot -= 16;
+    base2x -= 18;
+    base4x -= 18;
+    baseAwm -= 14;
+    baseOlharLivre -= 24;
   }
 
   // 5. Micro-ajuste determinístico usando ID combinado (nunca aleatório, sempre fixo para este par)
   const seedString = `${device.id}_${player.id}_${mode}`;
-  const microGeral = getDeterministicOffset(`${seedString}_geral`, 2);
-  const microRedDot = getDeterministicOffset(`${seedString}_redDot`, 2);
-  const micro2x = getDeterministicOffset(`${seedString}_2x`, 2);
-  const micro4x = getDeterministicOffset(`${seedString}_4x`, 2);
-  const microAwm = getDeterministicOffset(`${seedString}_awm`, 2);
-  const microOlhar = getDeterministicOffset(`${seedString}_olhar`, 3);
+  const microGeral = getDeterministicOffset(`${seedString}_geral`, 3);
+  const microRedDot = getDeterministicOffset(`${seedString}_redDot`, 3);
+  const micro2x = getDeterministicOffset(`${seedString}_2x`, 3);
+  const micro4x = getDeterministicOffset(`${seedString}_4x`, 3);
+  const microAwm = getDeterministicOffset(`${seedString}_awm`, 3);
+  const microOlhar = getDeterministicOffset(`${seedString}_olhar`, 4);
 
   const values: SensiValues = {
-    geral: clamp(baseGeral + microGeral, 50, 100),
-    redDot: clamp(baseRedDot + microRedDot, 50, 100),
-    mira2x: clamp(base2x + micro2x, 40, 100),
-    mira4x: clamp(base4x + micro4x, 35, 100),
-    miraAwm: clamp(baseAwm + microAwm, 15, 85),
-    olharLivre: clamp(baseOlharLivre + microOlhar, 30, 100),
+    geral: clamp(baseGeral + microGeral, 50, 200),
+    redDot: clamp(baseRedDot + microRedDot, 50, 200),
+    mira2x: clamp(base2x + micro2x, 40, 200),
+    mira4x: clamp(base4x + micro4x, 35, 200),
+    miraAwm: clamp(baseAwm + microAwm, 20, 180),
+    olharLivre: clamp(baseOlharLivre + microOlhar, 40, 200),
   };
 
   // 6. Botão de tiro recomendado

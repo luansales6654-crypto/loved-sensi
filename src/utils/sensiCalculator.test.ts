@@ -17,23 +17,40 @@ test('calculateSensi is 100% deterministic (same device + same player produces i
   assert.equal(run1.capaTip, run2.capaTip);
 });
 
-test('calculateSensi clamps all values within legal Free Fire ranges', () => {
+test('calculateSensi clamps all values within legal Free Fire 0-200 ranges and scales above 100', () => {
   for (const device of DEVICE_DATABASE.slice(0, 5)) {
-    for (const player of PLAYERS_DATABASE.slice(0, 4)) {
+    for (const player of PLAYERS_DATABASE) {
       for (const mode of ['high', 'low'] as const) {
         const result = calculateSensi(device, player, mode);
         const { geral, redDot, mira2x, mira4x, miraAwm, olharLivre } = result.values;
 
-        assert(geral >= 0 && geral <= 100, `Geral out of bounds: ${geral}`);
-        assert(redDot >= 0 && redDot <= 100, `RedDot out of bounds: ${redDot}`);
-        assert(mira2x >= 0 && mira2x <= 100, `2x out of bounds: ${mira2x}`);
-        assert(mira4x >= 0 && mira4x <= 100, `4x out of bounds: ${mira4x}`);
-        assert(miraAwm >= 0 && miraAwm <= 100, `AWM out of bounds: ${miraAwm}`);
-        assert(olharLivre >= 0 && olharLivre <= 100, `OlharLivre out of bounds: ${olharLivre}`);
+        assert(geral >= 0 && geral <= 200, `Geral out of bounds: ${geral}`);
+        assert(redDot >= 0 && redDot <= 200, `RedDot out of bounds: ${redDot}`);
+        assert(mira2x >= 0 && mira2x <= 200, `2x out of bounds: ${mira2x}`);
+        assert(mira4x >= 0 && mira4x <= 200, `4x out of bounds: ${mira4x}`);
+        assert(miraAwm >= 0 && miraAwm <= 200, `AWM out of bounds: ${miraAwm}`);
+        assert(olharLivre >= 0 && olharLivre <= 200, `OlharLivre out of bounds: ${olharLivre}`);
         assert(result.buttonSizePct >= 40 && result.buttonSizePct <= 75, `ButtonSize out of bounds: ${result.buttonSizePct}`);
+
+        // Garante que a sensibilidade geral e red dot estão de fato na escala moderna (acima de 100)
+        assert(geral > 120, `Geral deve estar na escala moderna 0-200: ${geral}`);
       }
     }
   }
+});
+
+test('new pro players Marechal and Felps exist and generate valid sensis', () => {
+  const marechal = PLAYERS_DATABASE.find(p => p.id === 'marechal');
+  const felps = PLAYERS_DATABASE.find(p => p.id === 'felps');
+  assert(marechal, 'Marechal must exist in PLAYERS_DATABASE');
+  assert(felps, 'Felps must exist in PLAYERS_DATABASE');
+
+  const device = DEVICE_DATABASE[0];
+  const resMarechal = calculateSensi(device, marechal!, 'high');
+  const resFelps = calculateSensi(device, felps!, 'high');
+
+  assert(resMarechal.values.geral >= 170 && resMarechal.values.geral <= 200);
+  assert(resFelps.values.geral >= 160 && resFelps.values.geral <= 200);
 });
 
 test('high sensi mode provides faster/higher geral sensitivity than low sensi mode', () => {
