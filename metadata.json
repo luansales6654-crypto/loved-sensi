@@ -2,5 +2,7 @@
   "name": "Loved Sensi - Gerador de Sensibilidade Free Fire",
   "description": "Gerador de sensibilidade e DPI exclusivo para Free Fire com presets dos melhores pro players e aparelhos.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
